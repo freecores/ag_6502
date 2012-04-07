@@ -5,7 +5,7 @@
 // 
 // Create Date:    10:50:36 02/15/2012 
 // Design Name: 
-// Module Name:    ag_6502 
+// Module Name:    my6502 
 // Project Name:    Agat Hardware Project
 // Target Devices: 
 // Tool versions: 
@@ -15,6 +15,7 @@
 //
 // Revision: 
 // Revision 0.01 - File Created
+// Revision 0.02 - Fixed NMI bug
 // Additional Comments: 
 //
 //////////////////////////////////////////////////////////////////////////////////
@@ -39,13 +40,13 @@ endmodule
 `else
 
 module ag6502_phase_shift(input baseclk, input phi_0, output reg phi_1);
-	parameter DELAY = 1; // delay in semi-waves of baseclk
+	parameter DELAY = 1; // delay in waves of baseclk
 	initial phi_1 = 0;
 	integer cnt = 0;
 	
 	always @(posedge baseclk) begin
 		if (phi_0 != phi_1) begin
-			if (!cnt) begin phi_1 <= ~phi_1; cnt <= DELAY; end
+			if (!cnt) begin phi_1 <= phi_0; cnt <= DELAY; end
 			else cnt <= cnt - 1;
 		end
 	end
@@ -53,7 +54,7 @@ endmodule
 
 // baseclk is used to simulate delays on a real hardware
 module ag6502_ext_clock(input baseclk, input phi_0, output phi_1, output phi_2);
-	parameter DELAY1 = 3, DELAY2 = 1; // delays in semi-waves of baseclk
+	parameter DELAY1 = 3, DELAY2 = 1; // delays in waves of baseclk
 	
 	wire phi_1_neg, phi_01;
 	
@@ -145,7 +146,7 @@ module ag6502(input phi_0,
 	reg rdyg = 1;
 	
 	reg[2:0] T = 7;
-	reg[7:0] IR ='h18;
+	reg[7:0] IR ='h00;
 	
 	reg[15:0] PC = 0;
 	wire[7:0] PCH = PC[15:8], PCL = PC[7:0];
@@ -177,6 +178,8 @@ module ag6502(input phi_0,
 	wire rst_active = ~rst;
 	wire so_active = so & ~so_prev;
 	
+	wire[7:0] IR_in = int_active?8'b0:db_in;
+
 	wire[1:0] vec_bits=
 			nmi_active?2'b01:
 			rst_active?2'b10:
@@ -184,9 +187,7 @@ module ag6502(input phi_0,
 	
 	wire[15:0] vec_addr = {{13{1'b1}}, vec_bits, 1'b0};
 	
-	wire[7:0] IR_eff = int_active?8'b0:IR;
-	
-	wire[10:0] L = {T, IR_eff};
+	wire[10:0] L = {T, IR};
 	
 	`include "states.v"
 	
@@ -266,8 +267,9 @@ module ag6502(input phi_0,
 			E_T__0;
 	
 	always @(negedge phi_2) if (rdyg) begin
-		if (E_PC__PC_1) PC <= PC + 1;
-		else if (E_PC__EA) PC <= EA;
+		if (E_PC__PC_1) begin
+			if (T || (!int_active && !rst_active)) PC <= PC + 1;
+		end else if (E_PC__EA) PC <= EA;
 		else begin
 			if (E_PCH__RES) PC[15:8] <= RES;
 			if (E_PCL__ALU) PC[7:0] <= ALU;
@@ -277,8 +279,8 @@ module ag6502(input phi_0,
 		end
 		
 		if (!T) begin
-			IR <= db_in;
-			if (!db_in) begin // BRK instruction
+			IR <= IR_in;
+			if (!IR_in) begin // BRK instruction
 				{EAH, EAL} <= vec_addr;
 			end
 			nmi_prev <= nmi;
@@ -326,8 +328,8 @@ module ag6502(input phi_0,
 		
 		if (cond) begin
 			T <= 0;
-			if (!IR_eff) begin
-				FLAG_B <= !IR;
+			if (!IR) begin
+				FLAG_B <= !int_active;
 				FLAG_I <= 1;
 			end
 		end else T <= T + ((E_T__T_1IF_ALUCZ && !ALU_CF)?2: 1);
