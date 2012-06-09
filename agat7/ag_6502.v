@@ -16,6 +16,7 @@
 // Revision: 
 // Revision 0.01 - File Created
 // Revision 0.02 - Fixed NMI bug
+// Revision 0.03 - Updated clocking constants to support higher frequencies
 // Additional Comments: 
 //
 //////////////////////////////////////////////////////////////////////////////////
@@ -40,7 +41,7 @@ endmodule
 `else
 
 module ag6502_phase_shift(input baseclk, input phi_0, output reg phi_1);
-	parameter DELAY = 1; // delay in waves of baseclk
+	parameter DELAY = 1; // delay in semi-waves of baseclk
 	initial phi_1 = 0;
 	integer cnt = 0;
 	
@@ -54,7 +55,7 @@ endmodule
 
 // baseclk is used to simulate delays on a real hardware
 module ag6502_ext_clock(input baseclk, input phi_0, output phi_1, output phi_2);
-	parameter DELAY1 = 3, DELAY2 = 1; // delays in waves of baseclk
+	parameter DELAY1 = 2, DELAY2 = 0; // delays in semi-waves of baseclk
 	
 	wire phi_1_neg, phi_01;
 	
