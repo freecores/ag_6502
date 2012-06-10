@@ -25,6 +25,7 @@ module chip1(
 	 input clk,
     input b1,
     input b2,
+	 input[3:0] SW,
 	 input rot_a, rot_b, rot_center,
     output[7:0] led,
     output vga_red,
@@ -62,6 +63,6 @@ module chip1(
 //	 assign j4 = 0, vga_bus = 0;
 	 
 	 wire[3:0] btns = {0, 0, b2, b1};
-	 ag_main agate(clk, btns, led, j4, vga_bus, ps2_bus);
+	 ag_main agate(clk, btns, SW, led, j4, vga_bus, ps2_bus);
 	 
 endmodule
