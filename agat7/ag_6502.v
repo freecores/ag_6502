@@ -41,7 +41,7 @@ endmodule
 `else
 
 module ag6502_phase_shift(input baseclk, input phi_0, output reg phi_1);
-	parameter DELAY = 1; // delay in waves of baseclk
+	parameter DELAY = 1; // delay in semi-waves of baseclk
 	initial phi_1 = 0;
 	integer cnt = 0;
 	

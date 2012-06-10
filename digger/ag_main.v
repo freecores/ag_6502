@@ -45,8 +45,9 @@ module RAM8kx8(input CLK, input[12:0] AB, input CS, input READ, output[7:0] DO, 
 	always @(posedge CLK) if (CS) if (READ) R <= mem[AB]; else mem[AB] <= DI;
 endmodule
 
+
 module ag_main(
-    input clk50,
+    input clk50x,
 	 input[4:0] btns,
 	 input[3:0] switches,
 	 output[7:0] leds,
@@ -56,11 +57,13 @@ module ag_main(
 	 output clk_cpu
     );
 
-	wire clk1, clk1x, clk10;
+	wire clk1, clk1x, clk10, clk50;
 	reg turbo = 0;
+	BUFG bg1(clk50, clk50x);
 	clk_div#5 cd5(clk50, clk10);
-   clk_div#10 cd10(clk10, clk1x);
-	assign clk1 = turbo?clk10:clk1x;
+	clk_div#10 cd10(clk10, clk1x);
+	BUFGMUX bgm1(clk1, clk1x, clk10, turbo);
+//	assign clk1 = turbo?clk10:clk1x;
 
 	
 	wire clk_vram;
